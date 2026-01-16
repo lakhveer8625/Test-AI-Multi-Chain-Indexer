@@ -26,16 +26,14 @@ COPY package*.json ./
 RUN npm install --only=production
 
 # Copy built application from builder
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/next.config.js ./
-COPY --from=builder /app/package.json ./
+COPY --from=builder /app/dist ./dist
 
 # Expose port
-EXPOSE 3001
+EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s \
-  CMD node -e "require('http').get('http://localhost:3001', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+  CMD node -e "require('http').get('http://localhost:3000/api/chains', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Run the application
-CMD ["npm", "start"]
+CMD ["node", "dist/main.js"]

@@ -1,0 +1,96 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type Block {
+  block_hash: String!
+  block_number: String!
+  chain: Chain!
+  chain_id: String!
+  event_count: Int!
+  id: ID!
+  indexed_at: DateTime!
+  is_canonical: Boolean!
+  parent_hash: String
+  timestamp: DateTime!
+}
+
+type BlockResponse {
+  blocks: [Block!]!
+  limit: Int!
+  offset: Int!
+  total: Int!
+}
+
+type Chain {
+  chain_id: String!
+  confirmation_depth: Int!
+  created_at: DateTime!
+  id: ID!
+  is_active: Boolean!
+  latest_indexed_block: String!
+  name: String!
+  rpc_url: String!
+  type: String!
+  ws_url: String
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type EventResponse {
+  events: [IndexedEvent!]!
+  limit: Int!
+  offset: Int!
+  total: Int!
+}
+
+type IndexedEvent {
+  block_number: String!
+  chain_id: String!
+  contract_address: String!
+  event_type: String!
+  from_address: String
+  id: ID!
+  indexed_at: DateTime!
+  is_canonical: Boolean!
+  raw_event_id: String!
+  timestamp: DateTime!
+  to_address: String
+  tx_hash: String!
+  value: String
+}
+
+type Query {
+  block(blockNumber: String!, chainId: String!): Block
+  blocks(chainId: String, limit: Int! = 50, offset: Int! = 0): BlockResponse!
+  chain(chainId: String!): Chain
+  chains: [Chain!]!
+  event(id: String!): IndexedEvent
+  events(chainId: String, contractAddress: String, eventType: String, fromAddress: String, limit: Int! = 50, offset: Int! = 0, toAddress: String): EventResponse!
+  transaction(id: String!): Transaction
+  transactions(chainId: String, fromAddress: String, limit: Int! = 50, offset: Int! = 0, toAddress: String): TransactionResponse!
+}
+
+type Transaction {
+  block_number: String!
+  chain_id: String!
+  from_address: String!
+  id: ID!
+  indexed_at: DateTime!
+  input_data: String
+  is_canonical: Boolean!
+  timestamp: DateTime!
+  to_address: String
+  tx_hash: String!
+  value: String!
+}
+
+type TransactionResponse {
+  limit: Int!
+  offset: Int!
+  total: Int!
+  transactions: [Transaction!]!
+}

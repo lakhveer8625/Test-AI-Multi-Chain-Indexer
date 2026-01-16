@@ -4,12 +4,14 @@ npm-debug.log
 yarn-error.log
 
 # Build output
-.next/
-out/
+dist/
 build/
+*.tsbuildinfo
 
 # Environment files
-.env*.local
+.env
+.env.local
+.env.*.local
 
 # IDE
 .vscode/
@@ -24,6 +26,12 @@ Thumbs.db
 
 # Testing
 coverage/
+.nyc_output/
 
 # Logs
+logs/
 *.log
+
+# Database
+*.db
+*.sqlite
