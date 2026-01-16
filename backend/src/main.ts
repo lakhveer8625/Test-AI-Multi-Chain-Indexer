@@ -8,8 +8,8 @@ async function bootstrap() {
 
     // Enable CORS
     app.enableCors({
-        origin: process.env.FRONTEND_URL || 'http://13.60.42.64:3001',
-        credentials: true,
+        origin: "*",
+        // credentials: true,
     });
 
     // Global validation pipe
