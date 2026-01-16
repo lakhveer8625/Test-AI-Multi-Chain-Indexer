@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@apollo/client": "^4.1.0",
-    "apollo-provider": "link:@/lib/apollo-provider",
     "graphql": "^16.12.0",
     "next": "16.1.2",
     "react": "19.2.3",

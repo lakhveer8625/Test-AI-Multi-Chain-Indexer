@@ -1,6 +1,5 @@
 "use client";
 
-import EventList from "../../../components/EventList";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 
@@ -42,7 +41,6 @@ export default function BlockPage() {
 
 import { gql } from "@apollo/client";
 import { useQuery } from "@apollo/client/react";
-import { useMemo, useState } from "react";
 
 const GET_BLOCK_EVENTS = gql`
   query BlockEvents($search: String!) {
