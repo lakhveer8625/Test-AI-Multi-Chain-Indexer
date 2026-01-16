@@ -15,8 +15,8 @@ Plus supporting infrastructure:
 - RabbitMQ (Message Broker)
 - Docker Compose (Orchestration)
 
----
-
+-----
+  
 ## 📊 System Capabilities
 
 ### Blockchain Support
