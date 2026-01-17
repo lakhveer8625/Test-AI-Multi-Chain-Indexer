@@ -39,7 +39,7 @@ export class Transaction {
     value: string;
 
     @Field({ nullable: true })
-    @Column({ type: 'text', nullable: true })
+    @Column({ type: 'longtext', nullable: true })
     input_data: string;
 
     @Field()

@@ -30,16 +30,20 @@ export class BlockTrackerService {
 
     @Cron(CronExpression.EVERY_10_SECONDS)
     async trackBlocks() {
-        const chains = await this.chainRepository.find({ where: { is_active: true } });
+        try {
+            const chains = await this.chainRepository.find({ where: { is_active: true } });
 
-        for (const chain of chains) {
-            if (this.isRunning.get(chain.chain_id)) {
-                continue; // Skip if already running for this chain
+            for (const chain of chains) {
+                if (this.isRunning.get(chain.chain_id)) {
+                    continue; // Skip if already running for this chain
+                }
+
+                this.processChain(chain).catch((error) => {
+                    this.logger.error(`Error processing chain ${chain.chain_id}: ${error.message}`, error.stack);
+                });
             }
-
-            this.processChain(chain).catch((error) => {
-                this.logger.error(`Error processing chain ${chain.chain_id}: ${error.message}`);
-            });
+        } catch (error: any) {
+            this.logger.error(`Critical error in trackBlocks cron: ${error.message}`, error.stack);
         }
     }
 
@@ -96,8 +100,12 @@ export class BlockTrackerService {
                         timestamp: metadata.timestamp,
                         is_canonical: true,
                     });
-                } catch (error) {
-                    this.logger.warn(`Failed to save metadata for block ${b}: ${error.message}`);
+                } catch (error: any) {
+                    if (error.message.includes('SKIP_SLOT')) {
+                        this.logger.debug(`Skipping metadata for skipped slot ${b}`);
+                    } else {
+                        this.logger.warn(`Failed to save metadata for block ${b}: ${error.message}`);
+                    }
                 }
             }
 

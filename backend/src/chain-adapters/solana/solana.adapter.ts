@@ -35,80 +35,96 @@ export class SolanaAdapter implements ChainAdapter {
 
     async fetchBlock(blockNumber: string): Promise<RawEvent[]> {
         const slot = parseInt(blockNumber);
-        const block = await withRetry(() => this.connection.getBlock(slot, {
-            maxSupportedTransactionVersion: 0,
-        }), {}, this.logger);
+        try {
+            const block = await withRetry(() => this.connection.getBlock(slot, {
+                maxSupportedTransactionVersion: 0,
+            }), {}, this.logger);
 
-        if (!block) {
-            throw new Error(`Block ${blockNumber} not found`);
-        }
+            if (!block) {
+                return [];
+            }
 
-        const events: RawEvent[] = [];
+            const events: RawEvent[] = [];
 
-        // Parse Solana transactions and extract logs
-        for (let i = 0; i < block.transactions.length; i++) {
-            const tx = block.transactions[i];
-            const signature = tx.transaction.signatures[0];
+            // Parse Solana transactions and extract logs
+            for (let i = 0; i < block.transactions.length; i++) {
+                const tx = block.transactions[i];
+                const signature = tx.transaction.signatures[0];
 
-            // Extract logs from transaction meta
-            if (tx.meta?.logMessages) {
-                for (let logIndex = 0; logIndex < tx.meta.logMessages.length; logIndex++) {
-                    const logMessage = tx.meta.logMessages[logIndex];
+                // Extract logs from transaction meta
+                if (tx.meta?.logMessages) {
+                    for (let logIndex = 0; logIndex < tx.meta.logMessages.length; logIndex++) {
+                        const logMessage = tx.meta.logMessages[logIndex];
 
-                    // Parse program invocations and events
-                    // This is simplified - real implementation would decode specific program logs
-                    events.push({
-                        chain_id: this.chainId,
-                        block_number: blockNumber,
-                        block_hash: block.blockhash,
-                        tx_hash: signature,
-                        log_index: logIndex,
-                        contract_address: '', // Extract from log message
-                        topics: [], // Solana doesn't use topics like EVM
-                        data: logMessage,
-                        block_timestamp: new Date((block.blockTime || 0) * 1000),
-                    });
+                        // Parse program invocations and events
+                        // This is simplified - real implementation would decode specific program logs
+                        events.push({
+                            chain_id: this.chainId,
+                            block_number: blockNumber,
+                            block_hash: block.blockhash,
+                            tx_hash: signature,
+                            log_index: logIndex,
+                            contract_address: '', // Extract from log message
+                            topics: [], // Solana doesn't use topics like EVM
+                            data: logMessage,
+                            block_timestamp: new Date((block.blockTime || 0) * 1000),
+                        });
+                    }
                 }
             }
-        }
 
-        this.logger.debug(`Fetched ${events.length} events from Solana slot ${blockNumber}`);
-        return events;
+            this.logger.debug(`Fetched ${events.length} events from Solana slot ${blockNumber}`);
+            return events;
+        } catch (error: any) {
+            if (error.message.includes('skipped') || error.message.includes('missing in long-term storage')) {
+                this.logger.warn(`Slot ${blockNumber} was skipped or missing. Skipping...`);
+                return [];
+            }
+            throw error;
+        }
     }
 
     async fetchTransactions(blockNumber: string): Promise<RawTransaction[]> {
         const slot = parseInt(blockNumber);
-        const block = await withRetry(() => this.connection.getBlock(slot, {
-            maxSupportedTransactionVersion: 0,
-        }), {}, this.logger);
+        try {
+            const block = await withRetry(() => this.connection.getBlock(slot, {
+                maxSupportedTransactionVersion: 0,
+            }), {}, this.logger);
 
-        if (!block) {
-            throw new Error(`Block ${blockNumber} not found`);
+            if (!block) {
+                return [];
+            }
+
+            const transactions: RawTransaction[] = [];
+
+            for (const tx of block.transactions) {
+                const signature = tx.transaction.signatures[0];
+
+                // Simplified value extraction - Solana doesn't have a single "value" like ETH
+                // We could use delta of lamports for the fee payer
+                const value = (tx.meta?.fee || 0).toString();
+
+                transactions.push({
+                    chain_id: this.chainId,
+                    block_number: blockNumber,
+                    block_hash: block.blockhash,
+                    tx_hash: signature,
+                    from_address: tx.transaction.message.staticAccountKeys[0].toString(),
+                    to_address: tx.transaction.message.staticAccountKeys[1] ? tx.transaction.message.staticAccountKeys[1].toString() : null,
+                    value,
+                    input_data: JSON.stringify(tx.transaction.message),
+                    timestamp: new Date((block.blockTime || 0) * 1000),
+                });
+            }
+
+            return transactions;
+        } catch (error: any) {
+            if (error.message.includes('skipped') || error.message.includes('missing in long-term storage')) {
+                this.logger.warn(`Slot ${blockNumber} was skipped or missing. Skipping...`);
+                return [];
+            }
+            throw error;
         }
-
-        const transactions: RawTransaction[] = [];
-
-        for (const tx of block.transactions) {
-            const signature = tx.transaction.signatures[0];
-
-            // Simplified value extraction - Solana doesn't have a single "value" like ETH
-            // We could use delta of lamports for the fee payer
-            const value = (tx.meta?.fee || 0).toString();
-
-            transactions.push({
-                chain_id: this.chainId,
-                block_number: blockNumber,
-                block_hash: block.blockhash,
-                tx_hash: signature,
-                from_address: tx.transaction.message.staticAccountKeys[0].toString(),
-                to_address: tx.transaction.message.staticAccountKeys[1] ? tx.transaction.message.staticAccountKeys[1].toString() : null,
-                value,
-                input_data: JSON.stringify(tx.transaction.message),
-                timestamp: new Date((block.blockTime || 0) * 1000),
-            });
-        }
-
-        return transactions;
     }
 
     async fetchBlockRange(fromBlock: string, toBlock: string): Promise<RawEvent[]> {
@@ -133,13 +149,20 @@ export class SolanaAdapter implements ChainAdapter {
 
     async fetchBlockMetadata(blockNumber: string): Promise<{ hash: string; parentHash: string; timestamp: Date }> {
         const slot = parseInt(blockNumber);
-        const block = await withRetry(() => this.connection.getBlock(slot, { maxSupportedTransactionVersion: 0 }), {}, this.logger);
-        if (!block) throw new Error(`Solana slot ${blockNumber} not found`);
-        return {
-            hash: block.blockhash,
-            parentHash: block.previousBlockhash,
-            timestamp: new Date((block.blockTime || 0) * 1000),
-        };
+        try {
+            const block = await withRetry(() => this.connection.getBlock(slot, { maxSupportedTransactionVersion: 0 }), {}, this.logger);
+            if (!block) throw new Error(`Solana slot ${blockNumber} not found`);
+            return {
+                hash: block.blockhash,
+                parentHash: block.previousBlockhash,
+                timestamp: new Date((block.blockTime || 0) * 1000),
+            };
+        } catch (error: any) {
+            if (error.message.includes('skipped') || error.message.includes('missing in long-term storage')) {
+                throw new Error(`SKIP_SLOT: ${blockNumber}`);
+            }
+            throw error;
+        }
     }
 
     async getLatestBlockNumber(): Promise<string> {

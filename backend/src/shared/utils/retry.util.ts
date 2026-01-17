@@ -30,7 +30,12 @@ export async function withRetry<T>(
         } catch (error: any) {
             lastError = error;
 
-            const isRetryable =
+            const isNonRetryable =
+                error.message?.toLowerCase().includes('skipped') ||
+                error.message?.toLowerCase().includes('missing in long-term storage') ||
+                error.message?.toLowerCase().includes('not found');
+
+            const isRetryable = !isNonRetryable && (
                 opts.retryableStatusCodes.some(code =>
                     error.message?.includes(code.toString()) ||
                     error.status === code ||
@@ -40,7 +45,8 @@ export async function withRetry<T>(
                 error.message?.toLowerCase().includes('rate limit') ||
                 error.message?.toLowerCase().includes('timeout') ||
                 error.message?.toLowerCase().includes('service unavailable') ||
-                error.message?.toLowerCase().includes('unable to complete request');
+                error.message?.toLowerCase().includes('unable to complete request')
+            );
 
             if (!isRetryable || attempt === opts.maxRetries) {
                 throw error;

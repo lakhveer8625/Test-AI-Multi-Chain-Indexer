@@ -64,8 +64,8 @@ export class IndexerService {
                         { is_processed: true }
                     );
                     processedCount++;
-                } catch (error) {
-                    this.logger.error(`Failed to process event ${rawEvent.id}: ${error.message}`);
+                } catch (error: any) {
+                    this.logger.error(`Failed to process event ${rawEvent.id}: ${error.message}`, error.stack);
                 }
             }
 

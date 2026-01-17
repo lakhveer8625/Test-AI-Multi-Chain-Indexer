@@ -26,12 +26,16 @@ export class ReorgService {
 
     @Cron(CronExpression.EVERY_MINUTE)
     async checkForReorgs() {
-        const chains = await this.chainRepository.find({ where: { is_active: true } });
+        try {
+            const chains = await this.chainRepository.find({ where: { is_active: true } });
 
-        for (const chain of chains) {
-            this.detectAndHandleReorg(chain).catch((error) => {
-                this.logger.error(`Error checking reorg for chain ${chain.chain_id}: ${error.message}`);
-            });
+            for (const chain of chains) {
+                this.detectAndHandleReorg(chain).catch((error) => {
+                    this.logger.error(`Error checking reorg for chain ${chain.chain_id}: ${error.message}`, error.stack);
+                });
+            }
+        } catch (error: any) {
+            this.logger.error(`Critical error in checkForReorgs cron: ${error.message}`, error.stack);
         }
     }
 
