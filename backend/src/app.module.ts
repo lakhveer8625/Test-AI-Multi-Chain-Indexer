@@ -53,7 +53,7 @@ import { SharedModule } from './shared/shared.module';
         }),
 
         // Scheduling for workers
-        // ScheduleModule.forRoot(),
+        ScheduleModule.forRoot(),
 
         // Application modules
         SharedModule,
