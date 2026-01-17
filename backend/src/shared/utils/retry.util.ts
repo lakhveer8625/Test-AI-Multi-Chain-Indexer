@@ -56,6 +56,7 @@ export async function withRetry<T>(
             );
 
             if (!isRetryable || attempt === opts.maxRetries) {
+                console.error(`Attempt ${attempt} failed: ${error.message}. Retrying in ${delay}ms...`);
                 throw error;
             }
 
