@@ -52,4 +52,18 @@ async function bootstrap() {
     console.log(`🎯 GraphQL Playground at http://localhost:${port}/graphql`);
 }
 
-bootstrap();
+// Global handlers for unexpected crashes
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('🚨 Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('🚨 Uncaught Exception thrown:', err);
+    // Give it a second to log before exiting
+    setTimeout(() => process.exit(1), 1000);
+});
+
+bootstrap().catch(err => {
+    console.error('❌ Fatal error during bootstrap:', err);
+    process.exit(1);
+});

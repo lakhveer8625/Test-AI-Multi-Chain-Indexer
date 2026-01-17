@@ -35,9 +35,8 @@ export async function withRetry<T>(
                 error.message?.toLowerCase().includes('missing in long-term storage') ||
                 error.message?.toLowerCase().includes('not found');
 
-            const errorStr = JSON.stringify(error).toLowerCase();
             const errorMessage = (error.message || '').toLowerCase();
-            const infoMessage = error.info ? JSON.stringify(error.info).toLowerCase() : '';
+            const infoMessage = error.info ? String(error.info).toLowerCase() : '';
 
             const isRetryable = !isNonRetryable && (
                 opts.retryableStatusCodes.some(code =>
@@ -45,7 +44,7 @@ export async function withRetry<T>(
                     infoMessage.includes(code.toString()) ||
                     error.status === code ||
                     error.code === code ||
-                    (error.info?.responseStatus && error.info.responseStatus.includes(code.toString()))
+                    (error.info && error.info.responseStatus && String(error.info.responseStatus).includes(code.toString()))
                 ) ||
                 errorMessage.includes('rate limit') ||
                 infoMessage.includes('rate limit') ||
