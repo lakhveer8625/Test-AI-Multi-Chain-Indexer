@@ -8,11 +8,11 @@ export interface RetryOptions {
 }
 
 const defaultOptions: RetryOptions = {
-    maxRetries: 5,
+    maxRetries: 7,
     initialDelayMs: 1000,
-    maxDelayMs: 10000,
+    maxDelayMs: 30000,
     backoffFactor: 2,
-    retryableStatusCodes: [429, 503, 504, 502],
+    retryableStatusCodes: [429, 503, 504, 502, -32005, -32000, -32603],
 };
 
 export async function withRetry<T>(
@@ -35,17 +35,25 @@ export async function withRetry<T>(
                 error.message?.toLowerCase().includes('missing in long-term storage') ||
                 error.message?.toLowerCase().includes('not found');
 
+            const errorStr = JSON.stringify(error).toLowerCase();
+            const errorMessage = (error.message || '').toLowerCase();
+            const infoMessage = error.info ? JSON.stringify(error.info).toLowerCase() : '';
+
             const isRetryable = !isNonRetryable && (
                 opts.retryableStatusCodes.some(code =>
-                    error.message?.includes(code.toString()) ||
+                    errorMessage.includes(code.toString()) ||
+                    infoMessage.includes(code.toString()) ||
                     error.status === code ||
                     error.code === code ||
                     (error.info?.responseStatus && error.info.responseStatus.includes(code.toString()))
                 ) ||
-                error.message?.toLowerCase().includes('rate limit') ||
-                error.message?.toLowerCase().includes('timeout') ||
-                error.message?.toLowerCase().includes('service unavailable') ||
-                error.message?.toLowerCase().includes('unable to complete request')
+                errorMessage.includes('rate limit') ||
+                infoMessage.includes('rate limit') ||
+                errorMessage.includes('timeout') ||
+                infoMessage.includes('timeout') ||
+                errorMessage.includes('service unavailable') ||
+                errorMessage.includes('unable to complete request') ||
+                errorMessage.includes('too many requests')
             );
 
             if (!isRetryable || attempt === opts.maxRetries) {

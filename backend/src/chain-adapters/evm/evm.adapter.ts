@@ -133,6 +133,9 @@ export class EvmAdapter implements ChainAdapter {
             // Fallback: fetch block by block
             for (let i = from; i <= to; i++) {
                 try {
+                    // Small delay to avoid hammering the provider
+                    await new Promise(resolve => setTimeout(resolve, 100));
+
                     const blockLogs = await withRetry(() => this.provider.getLogs({
                         fromBlock: i,
                         toBlock: i
@@ -174,29 +177,40 @@ export class EvmAdapter implements ChainAdapter {
 
         const transactions: RawTransaction[] = [];
 
-        // Concurrently fetch transactions if they are not prefetched
-        const txPromises = block.transactions.map(async (txHash) => {
-            const tx = typeof txHash === 'string'
-                ? await withRetry(() => this.provider.getTransaction(txHash), {}, this.logger)
-                : txHash;
+        // Limit concurrency to avoid rate limits
+        const batchSize = 10;
+        const results: any[] = [];
 
-            if (tx) {
-                return {
-                    chain_id: this.chainId,
-                    block_number: block.number.toString(),
-                    block_hash: block.hash!,
-                    tx_hash: tx.hash,
-                    from_address: tx.from.toLowerCase(),
-                    to_address: tx.to ? tx.to.toLowerCase() : null,
-                    value: tx.value.toString(),
-                    input_data: tx.data,
-                    timestamp: new Date(block.timestamp * 1000),
-                };
+        for (let i = 0; i < block.transactions.length; i += batchSize) {
+            const batch = block.transactions.slice(i, i + batchSize);
+            const batchResults = await Promise.all(batch.map(async (txHash) => {
+                const tx = typeof txHash === 'string'
+                    ? await withRetry(() => this.provider.getTransaction(txHash), {}, this.logger)
+                    : txHash;
+
+                if (tx) {
+                    return {
+                        chain_id: this.chainId,
+                        block_number: block.number.toString(),
+                        block_hash: block.hash!,
+                        tx_hash: tx.hash,
+                        from_address: tx.from.toLowerCase(),
+                        to_address: tx.to ? tx.to.toLowerCase() : null,
+                        value: tx.value.toString(),
+                        input_data: tx.data,
+                        timestamp: new Date(block.timestamp * 1000),
+                    };
+                }
+                return null;
+            }));
+            results.push(...batchResults);
+
+            // Short pause between batches
+            if (i + batchSize < block.transactions.length) {
+                await new Promise(resolve => setTimeout(resolve, 50));
             }
-            return null;
-        });
+        }
 
-        const results = await Promise.all(txPromises);
         return results.filter((tx): tx is RawTransaction => tx !== null);
     }
 
