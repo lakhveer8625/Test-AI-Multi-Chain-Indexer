@@ -184,22 +184,26 @@ export class EvmAdapter implements ChainAdapter {
         for (let i = 0; i < block.transactions.length; i += batchSize) {
             const batch = block.transactions.slice(i, i + batchSize);
             const batchResults = await Promise.all(batch.map(async (txHash) => {
-                const tx = typeof txHash === 'string'
-                    ? await withRetry(() => this.provider.getTransaction(txHash), {}, this.logger)
-                    : txHash;
+                try {
+                    const tx = typeof txHash === 'string'
+                        ? await withRetry(() => this.provider.getTransaction(txHash), {}, this.logger)
+                        : txHash;
 
-                if (tx) {
-                    return {
-                        chain_id: this.chainId,
-                        block_number: block.number.toString(),
-                        block_hash: block.hash!,
-                        tx_hash: tx.hash,
-                        from_address: tx.from.toLowerCase(),
-                        to_address: tx.to ? tx.to.toLowerCase() : null,
-                        value: tx.value.toString(),
-                        input_data: tx.data,
-                        timestamp: new Date(block.timestamp * 1000),
-                    };
+                    if (tx) {
+                        return {
+                            chain_id: this.chainId,
+                            block_number: block.number.toString(),
+                            block_hash: block.hash!,
+                            tx_hash: tx.hash,
+                            from_address: tx.from.toLowerCase(),
+                            to_address: tx.to ? tx.to.toLowerCase() : null,
+                            value: tx.value.toString(),
+                            input_data: tx.data,
+                            timestamp: new Date(block.timestamp * 1000),
+                        };
+                    }
+                } catch (error: any) {
+                    this.logger.error(`Failed to fetch transaction ${typeof txHash === 'string' ? txHash : (txHash as any).hash}: ${error.message}`);
                 }
                 return null;
             }));

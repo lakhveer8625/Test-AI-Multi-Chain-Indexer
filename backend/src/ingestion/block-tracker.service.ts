@@ -148,45 +148,60 @@ export class BlockTrackerService {
     }
 
     private async saveTransactions(txs: RawTransaction[]) {
-        const transactions = txs.map((tx) => ({
-            chain_id: tx.chain_id,
-            block_number: tx.block_number,
-            block_hash: tx.block_hash,
-            tx_hash: tx.tx_hash,
-            from_address: tx.from_address,
-            to_address: tx.to_address || undefined,
-            value: tx.value,
-            input_data: tx.input_data,
-            timestamp: tx.timestamp,
-            is_canonical: true,
-        }));
+        if (txs.length === 0) return;
 
-        await this.transactionRepository.save(transactions);
+        const batchSize = 50; // Use small batches to prevent OOM
+        for (let i = 0; i < txs.length; i += batchSize) {
+            const chunk = txs.slice(i, i + batchSize);
+            const transactions = chunk.map((tx) => ({
+                chain_id: tx.chain_id,
+                block_number: tx.block_number,
+                block_hash: tx.block_hash,
+                tx_hash: tx.tx_hash,
+                from_address: tx.from_address,
+                to_address: tx.to_address || undefined,
+                value: tx.value,
+                input_data: tx.input_data,
+                timestamp: tx.timestamp,
+                is_canonical: true,
+            }));
+
+            try {
+                // Use upsert for better performance and to handle duplicates gracefully
+                await this.transactionRepository.upsert(transactions, ['chain_id', 'tx_hash']);
+            } catch (error) {
+                this.logger.error(`Failed to save transactions batch: ${error.message}`);
+            }
+        }
     }
 
     private async saveEvents(events: import('../chain-adapters/adapter.interface').RawEvent[]) {
         if (events.length === 0) return;
 
-        // Save raw events
-        const rawEvents = events.map((event) => ({
-            chain_id: event.chain_id,
-            block_number: event.block_number.toString(),
-            block_hash: event.block_hash,
-            tx_hash: event.tx_hash,
-            log_index: event.log_index,
-            contract_address: event.contract_address,
-            topics: JSON.stringify(event.topics),
-            data: event.data,
-            is_canonical: true,
-            is_processed: false,
-            block_timestamp: event.block_timestamp,
-        }));
+        const batchSize = 50;
+        for (let i = 0; i < events.length; i += batchSize) {
+            const chunk = events.slice(i, i + batchSize);
+            const rawEvents = chunk.map((event) => ({
+                chain_id: event.chain_id,
+                block_number: event.block_number.toString(),
+                block_hash: event.block_hash,
+                tx_hash: event.tx_hash,
+                log_index: event.log_index,
+                contract_address: event.contract_address,
+                topics: JSON.stringify(event.topics),
+                data: event.data,
+                is_canonical: true,
+                is_processed: false,
+                block_timestamp: event.block_timestamp,
+            }));
 
-        try {
-            const saved = await this.rawEventRepository.save(rawEvents);
-            this.logger.log(`✓ Saved ${saved.length} raw events to database for chain ${events[0].chain_id}`);
-        } catch (error) {
-            this.logger.error(`Failed to save raw events: ${error.message}`);
+            try {
+                await this.rawEventRepository.upsert(rawEvents, ['chain_id', 'block_number', 'log_index']);
+            } catch (error) {
+                this.logger.error(`Failed to save raw events batch: ${error.message}`);
+            }
         }
+
+        this.logger.log(`✓ Processed ${events.length} raw events for chain ${events[0].chain_id}`);
     }
 }

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { RawEvent as RawEventInterface } from '../chain-adapters/adapter.interface';
 import { RawEvent } from '../shared/entities/raw-event.entity';
 
@@ -25,8 +25,8 @@ export class DeduplicatorService {
         // Fetch existing events in this block range to minimize queries
         const existing = await this.rawEventRepository.find({
             where: {
-                chain_id: chainIds[0], // Simplified assuming batch is per-chain
-                block_number: blockNumbers[0], // Further optimization possible for multi-block batches
+                chain_id: chainIds[0],
+                block_number: In(blockNumbers),
             },
             select: ['chain_id', 'block_number', 'log_index']
         });
