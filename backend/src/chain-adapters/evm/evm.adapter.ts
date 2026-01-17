@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ethers } from 'ethers';
 import { ChainAdapter, RawEvent, ReorgInfo, RawTransaction } from '../adapter.interface';
+import { withRetry } from '../../shared/utils/retry.util';
 
 @Injectable()
 export class EvmAdapter implements ChainAdapter {
@@ -54,7 +55,7 @@ export class EvmAdapter implements ChainAdapter {
 
     async fetchBlock(blockNumber: string): Promise<RawEvent[]> {
         const blockNum = parseInt(blockNumber);
-        const block = await this.provider.getBlock(blockNum, true);
+        const block = await withRetry(() => this.provider.getBlock(blockNum, true), {}, this.logger);
 
         if (!block) {
             throw new Error(`Block ${blockNumber} not found`);
@@ -64,7 +65,7 @@ export class EvmAdapter implements ChainAdapter {
 
         // Fetch all transaction receipts to get logs
         for (const tx of block.prefetchedTransactions || []) {
-            const receipt = await this.provider.getTransactionReceipt(tx.hash);
+            const receipt = await withRetry(() => this.provider.getTransactionReceipt(tx.hash), {}, this.logger);
 
             if (receipt && receipt.logs) {
                 for (const log of receipt.logs) {
@@ -98,7 +99,7 @@ export class EvmAdapter implements ChainAdapter {
                 toBlock: to,
             };
 
-            const logs = await this.provider.getLogs(filter);
+            const logs = await withRetry(() => this.provider.getLogs(filter), {}, this.logger);
 
             // Group logs by block to fetch block timestamps
             const blockCache = new Map<number, ethers.Block>();
@@ -107,7 +108,7 @@ export class EvmAdapter implements ChainAdapter {
                 let block = blockCache.get(log.blockNumber);
 
                 if (!block) {
-                    block = (await this.provider.getBlock(log.blockNumber)) || undefined;
+                    block = (await withRetry(() => this.provider.getBlock(log.blockNumber), {}, this.logger)) || undefined;
                     if (block) {
                         blockCache.set(log.blockNumber, block);
                     }
@@ -132,12 +133,12 @@ export class EvmAdapter implements ChainAdapter {
             // Fallback: fetch block by block
             for (let i = from; i <= to; i++) {
                 try {
-                    const blockLogs = await this.provider.getLogs({
+                    const blockLogs = await withRetry(() => this.provider.getLogs({
                         fromBlock: i,
                         toBlock: i
-                    });
+                    }), {}, this.logger);
 
-                    const block = await this.provider.getBlock(i);
+                    const block = await withRetry(() => this.provider.getBlock(i), {}, this.logger);
                     if (!block) continue;
 
                     for (const log of blockLogs) {
@@ -165,7 +166,7 @@ export class EvmAdapter implements ChainAdapter {
 
     async fetchTransactions(blockNumber: string): Promise<RawTransaction[]> {
         const blockNum = parseInt(blockNumber);
-        const block = await this.provider.getBlock(blockNum, true);
+        const block = await withRetry(() => this.provider.getBlock(blockNum, true), {}, this.logger);
 
         if (!block) {
             throw new Error(`Block ${blockNumber} not found`);
@@ -173,13 +174,14 @@ export class EvmAdapter implements ChainAdapter {
 
         const transactions: RawTransaction[] = [];
 
-        for (const txHash of block.transactions) {
+        // Concurrently fetch transactions if they are not prefetched
+        const txPromises = block.transactions.map(async (txHash) => {
             const tx = typeof txHash === 'string'
-                ? await this.provider.getTransaction(txHash)
+                ? await withRetry(() => this.provider.getTransaction(txHash), {}, this.logger)
                 : txHash;
 
             if (tx) {
-                transactions.push({
+                return {
                     chain_id: this.chainId,
                     block_number: block.number.toString(),
                     block_hash: block.hash!,
@@ -189,16 +191,18 @@ export class EvmAdapter implements ChainAdapter {
                     value: tx.value.toString(),
                     input_data: tx.data,
                     timestamp: new Date(block.timestamp * 1000),
-                });
+                };
             }
-        }
+            return null;
+        });
 
-        return transactions;
+        const results = await Promise.all(txPromises);
+        return results.filter((tx): tx is RawTransaction => tx !== null);
     }
 
     async fetchBlockMetadata(blockNumber: string): Promise<{ hash: string; parentHash: string; timestamp: Date }> {
         const blockNum = parseInt(blockNumber);
-        const block = await this.provider.getBlock(blockNum);
+        const block = await withRetry(() => this.provider.getBlock(blockNum), {}, this.logger);
         if (!block) throw new Error(`Block ${blockNumber} not found`);
         return {
             hash: block.hash!,
@@ -208,7 +212,7 @@ export class EvmAdapter implements ChainAdapter {
     }
 
     async getLatestBlockNumber(): Promise<string> {
-        const blockNumber = await this.provider.getBlockNumber();
+        const blockNumber = await withRetry(() => this.provider.getBlockNumber(), {}, this.logger);
         return blockNumber.toString();
     }
 

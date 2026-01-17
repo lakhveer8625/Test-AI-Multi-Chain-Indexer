@@ -34,6 +34,7 @@ export class ChainAdapterService implements OnModuleInit, OnModuleDestroy {
         await this.initializeEvmChain('eth-sepolia', 'Ethereum Sepolia', '11155111');
         await this.initializeEvmChain('bsc-mainnet', 'BSC Mainnet', '56');
         await this.initializeEvmChain('polygon-mainnet', 'Polygon Mainnet', '137');
+        await this.initializeEvmChain('polygon-zkevm', 'Polygon zkEVM', '1101');
 
         // Initialize Solana chains
         await this.initializeSolanaChain('solana-mainnet', 'Solana Mainnet');

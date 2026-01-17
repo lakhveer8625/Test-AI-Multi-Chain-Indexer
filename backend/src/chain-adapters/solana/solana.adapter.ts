@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { ChainAdapter, RawEvent, ReorgInfo, RawTransaction } from '../adapter.interface';
+import { withRetry } from '../../shared/utils/retry.util';
 
 @Injectable()
 export class SolanaAdapter implements ChainAdapter {
@@ -23,7 +24,7 @@ export class SolanaAdapter implements ChainAdapter {
         this.logger.log('Starting Solana adapter');
 
         // Verify connection
-        const version = await this.connection.getVersion();
+        const version = await withRetry(() => this.connection.getVersion(), {}, this.logger);
         this.logger.log(`Connected to Solana cluster version: ${version['solana-core']}`);
     }
 
@@ -34,9 +35,9 @@ export class SolanaAdapter implements ChainAdapter {
 
     async fetchBlock(blockNumber: string): Promise<RawEvent[]> {
         const slot = parseInt(blockNumber);
-        const block = await this.connection.getBlock(slot, {
+        const block = await withRetry(() => this.connection.getBlock(slot, {
             maxSupportedTransactionVersion: 0,
-        });
+        }), {}, this.logger);
 
         if (!block) {
             throw new Error(`Block ${blockNumber} not found`);
@@ -77,9 +78,9 @@ export class SolanaAdapter implements ChainAdapter {
 
     async fetchTransactions(blockNumber: string): Promise<RawTransaction[]> {
         const slot = parseInt(blockNumber);
-        const block = await this.connection.getBlock(slot, {
+        const block = await withRetry(() => this.connection.getBlock(slot, {
             maxSupportedTransactionVersion: 0,
-        });
+        }), {}, this.logger);
 
         if (!block) {
             throw new Error(`Block ${blockNumber} not found`);
@@ -132,7 +133,7 @@ export class SolanaAdapter implements ChainAdapter {
 
     async fetchBlockMetadata(blockNumber: string): Promise<{ hash: string; parentHash: string; timestamp: Date }> {
         const slot = parseInt(blockNumber);
-        const block = await this.connection.getBlock(slot, { maxSupportedTransactionVersion: 0 });
+        const block = await withRetry(() => this.connection.getBlock(slot, { maxSupportedTransactionVersion: 0 }), {}, this.logger);
         if (!block) throw new Error(`Solana slot ${blockNumber} not found`);
         return {
             hash: block.blockhash,
@@ -142,7 +143,7 @@ export class SolanaAdapter implements ChainAdapter {
     }
 
     async getLatestBlockNumber(): Promise<string> {
-        const slot = await this.connection.getSlot();
+        const slot = await withRetry(() => this.connection.getSlot(), {}, this.logger);
         return slot.toString();
     }
 
