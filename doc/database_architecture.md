@@ -66,6 +66,16 @@ erDiagram
         string value
         text decoded_data "JSON"
     }
+
+    EL {
+        string id PK "UUID"
+        string level "error | warn"
+        string source "Context"
+        text message
+        text stack_trace
+        json metadata
+        datetime timestamp
+    }
 ```
 
 ## Key Optimization Strategies

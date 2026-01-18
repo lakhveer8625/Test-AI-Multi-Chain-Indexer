@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { ScheduleModule } from '@nestjs/schedule';
+import { APP_FILTER } from '@nestjs/core';
 import { join } from 'path';
 
 // Import modules
@@ -16,6 +17,7 @@ import { AuthModule } from './auth/auth.module';
 import { RateLimitModule } from './rate-limit/rate-limit.module';
 import { SharedModule } from './shared/shared.module';
 import { MessagingModule } from './messaging/messaging.module';
+import { AllExceptionsFilter } from './shared/filters/all-exceptions.filter';
 
 @Module({
     imports: [
@@ -66,6 +68,12 @@ import { MessagingModule } from './messaging/messaging.module';
         AuthModule,
         RateLimitModule,
         MessagingModule,
+    ],
+    providers: [
+        {
+            provide: APP_FILTER,
+            useClass: AllExceptionsFilter,
+        },
     ],
 })
 export class AppModule { }

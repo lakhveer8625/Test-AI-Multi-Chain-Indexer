@@ -7,6 +7,8 @@ import { RawEvent } from './entities/raw-event.entity';
 import { IndexedEvent } from './entities/indexed-event.entity';
 import { TokenTransfer } from './entities/token-transfer.entity';
 import { Transaction } from './entities/transaction.entity';
+import { ErrorLog } from './entities/error-log.entity';
+import { ErrorLogService } from './services/error-log.service';
 
 @Module({
     imports: [
@@ -18,8 +20,10 @@ import { Transaction } from './entities/transaction.entity';
             IndexedEvent,
             TokenTransfer,
             Transaction,
+            ErrorLog,
         ]),
     ],
-    exports: [TypeOrmModule],
+    providers: [ErrorLogService],
+    exports: [TypeOrmModule, ErrorLogService],
 })
 export class SharedModule { }

@@ -292,3 +292,29 @@ For issues and questions, please open a GitHub issue.
 ---
 
 **Built with ❤️ using NestJS & Next.js**
+🌐 Frontend (Next.js – Separate Service)
+Tech Stack
+
+Next.js (App Router)
+
+Server Components
+
+GraphQL Client
+
+WebSockets
+
+Tailwind
+
+Features
+
+Real-time event stream
+
+Chain / token filters
+
+Wallet explorer
+
+Transaction explorer
+
+Charts & analytics
+
+Virtualized tables
