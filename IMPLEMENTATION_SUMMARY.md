@@ -12,6 +12,7 @@ You now have a **production-ready, enterprise-grade multi-chain blockchain event
 Plus supporting infrastructure:
 - MySQL 8.0 (Database)
 - Redis (Cache)
+- RabbitMQ (Message Broker)
 - Docker Compose (Orchestration)
 
 ---
@@ -44,8 +45,10 @@ Plus supporting infrastructure:
 2. **Ingestion Pipeline** - Poll and ingest new blocks
 3. **Indexer Workers** - Decode and normalize events
 4. **Reorg Module** - Detect and handle reorganizations
-5. **Query Layer** - Serve data via REST + GraphQL
-6. **Auth & Rate Limit** - Ready for implementation
+5. **Messaging Module** - RabbitMQ integration for event stream
+6. **Query Layer** - Serve data via REST + GraphQL
+7. **Auth & Rate Limit** - Ready for implementation (with JWT/Redis)
+8. **Testing Layer** - Core Service unit tests (Messaging, Indexer)
 
 ### Database Design
 - **6 Optimized Tables** for billions of events
@@ -116,9 +119,10 @@ docker-compose restart backend
 
 1. **MySQL** initializes with schema
 2. **Redis** starts for caching
-3. **Backend** connects to chains and starts indexing
-4. **Frontend** displays real-time dashboard
-5. **Events** start flowing automatically
+3. **RabbitMQ** Asserting exchanges and queues
+4. **Backend** connects to chains and starts indexing
+5. **Frontend** displays real-time dashboard
+6. **Events** start flowing to DB and RabbitMQ automatically
 
 ---
 

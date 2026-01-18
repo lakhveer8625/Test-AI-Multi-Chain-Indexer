@@ -50,6 +50,10 @@ multi-chain-event-indexer/
 │   │   ├── rate-limit/              # Rate Limiting Module
 │   │   │   └── rate-limit.module.ts
 │   │   │
+│   │   ├── messaging/               # RabbitMQ Messaging Module
+│   │   │   ├── messaging.module.ts
+│   │   │   └── messaging.service.ts
+│   │   │
 │   │   └── shared/                  # Shared Module
 │   │       ├── shared.module.ts
 │   │       └── entities/
@@ -107,12 +111,13 @@ multi-chain-event-indexer/
 ## File Count Summary
 
 ### Backend (TypeScript/NestJS)
-- **Modules**: 7 (chain-adapters, ingestion, indexer, reorg, query, auth, rate-limit, shared)
-- **Services**: 10+
+- **Modules**: 8 (chain-adapters, ingestion, indexer, reorg, query, auth, rate-limit, messaging, shared)
+- **Services**: 12+
 - **Controllers**: 3
 - **Resolvers**: 3
-- **Entities**: 6
+- **Entities**: 7
 - **Adapters**: 2 (EVM, Solana)
+- **Tests**: Unit tests for Core Services (Messaging, Indexer)
 
 ### Frontend (TypeScript/Next.js)
 - **Pages**: 2+ (Dashboard, Events)
@@ -130,6 +135,7 @@ multi-chain-event-indexer/
 - **Framework**: NestJS (Node.js)
 - **Database**: MySQL 8.0
 - **Cache**: Redis
+- **Message Broker**: RabbitMQ
 - **ORM**: TypeORM
 - **API**: REST + GraphQL (Apollo)
 - **Blockchain**: ethers.js (EVM), @solana/web3.js
@@ -146,6 +152,7 @@ multi-chain-event-indexer/
 - **Orchestration**: Docker Compose
 - **Reverse Proxy**: (Future: Nginx)
 - **Monitoring**: (Future: Prometheus + Grafana)
+- **Messaging**: RabbitMQ (amqp-connection-manager)
 
 ## Key Features Implemented
 

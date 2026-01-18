@@ -55,6 +55,7 @@ Enterprise-grade multi-chain blockchain event indexing platform with monolithic 
 - Node.js 20+ (for local development)
 - MySQL 8+
 - Redis
+- RabbitMQ
 
 ### Using Docker Compose (Recommended)
 
@@ -198,6 +199,7 @@ docker build -t indexer-frontend:latest ./frontend
 │   │   ├── chain-adapters/  # Blockchain adapters
 │   │   ├── ingestion/       # Event ingestion pipeline
 │   │   ├── indexer/         # Event processing workers
+│   │   ├── messaging/       # RabbitMQ messaging
 │   │   ├── reorg/           # Reorg detection & handling
 │   │   ├── query/           # REST & GraphQL APIs
 │   │   ├── auth/            # Authentication

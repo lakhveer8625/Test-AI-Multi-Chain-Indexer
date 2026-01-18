@@ -6,6 +6,8 @@ import { RawEvent } from '../shared/entities/raw-event.entity';
 import { IndexedEvent } from '../shared/entities/indexed-event.entity';
 import { EventNormalizerService } from './event-normalizer.service';
 import { EventEnricherService } from './event-enricher.service';
+import { MessagingService } from '../messaging/messaging.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class IndexerService {
@@ -19,6 +21,8 @@ export class IndexerService {
         private rawEventRepository: Repository<RawEvent>,
         @InjectRepository(IndexedEvent)
         private indexedEventRepository: Repository<IndexedEvent>,
+        private messagingService: MessagingService,
+        private configService: ConfigService,
     ) { }
 
     @Cron(CronExpression.EVERY_5_SECONDS)
@@ -55,7 +59,11 @@ export class IndexerService {
                         const enriched = await this.enricherService.enrich(normalized);
 
                         // Save indexed event
-                        await this.indexedEventRepository.save(enriched);
+                        const savedEvent = await this.indexedEventRepository.save(enriched);
+
+                        // Publish to RabbitMQ
+                        const exchange = this.configService.get<string>('RABBITMQ_EXCHANGE', 'indexer-exchange');
+                        await this.messagingService.publish(exchange, `event.${enriched.event_type.toLowerCase()}`, savedEvent);
                     }
 
                     // Mark as processed regardless of whether it was normalized (to avoid retry loops on invalid data)

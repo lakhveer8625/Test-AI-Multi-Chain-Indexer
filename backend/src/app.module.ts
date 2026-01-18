@@ -15,6 +15,7 @@ import { QueryModule } from './query/query.module';
 import { AuthModule } from './auth/auth.module';
 import { RateLimitModule } from './rate-limit/rate-limit.module';
 import { SharedModule } from './shared/shared.module';
+import { MessagingModule } from './messaging/messaging.module';
 
 @Module({
     imports: [
@@ -64,6 +65,7 @@ import { SharedModule } from './shared/shared.module';
         QueryModule,
         AuthModule,
         RateLimitModule,
+        MessagingModule,
     ],
 })
 export class AppModule { }

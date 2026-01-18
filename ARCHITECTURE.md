@@ -7,7 +7,7 @@ The Multi-Chain Event Indexer is a **monolithic backend** with a separate fronte
 ## Architecture Principles
 
 1. **Monolithic Backend**: Single deployable service with clear internal module boundaries
-2. **Event-Driven**: Asynchronous event processing with queues
+2. **Event-Driven**: Reliable message distribution via RabbitMQ
 3. **CQRS Pattern**: Separation of write (indexing) and read (querying) operations
 4. **Chain-Agnostic**: Pluggable adapter pattern for different blockchains
 5. **Replay-Safe**: Reorg detection and handling with soft deletes
@@ -40,7 +40,7 @@ The Multi-Chain Event Indexer is a **monolithic backend** with a separate fronte
 │  │         Indexer Workers Module                  │   │
 │  │  - Event Normalizer (decodes events)           │   │
 │  │  - Event Enricher (adds metadata)              │   │
-│  │  - Parallel workers for processing             │   │
+│  │  - Publishes to RabbitMQ for consumers         │   │
 │  └────────────────────────────────────────────────┘   │
 │                         │                              │
 │                         ▼                              │
@@ -112,13 +112,14 @@ Blockchain → Chain Adapter → Block Tracker → Deduplicator
                                            Raw Events Table
                                                   │
                                                   ▼
-                                           Indexer Workers
-                                                  │
-                                                  ▼
                                     Normalizer → Enricher
                                                   │
                                                   ▼
                                          Indexed Events Table
+                                                  │
+                                                  ▼
+                                           RabbitMQ Exchange
+                                           (event.transfer, etc.)
 ```
 
 ### Read Path (Querying)
@@ -265,7 +266,7 @@ indexed_events (normalized)
 1. **Worker Scaling**: Increase `WORKER_CONCURRENCY` env var
 2. **Database Scaling**: MySQL read replicas
 3. **Caching**: Redis cluster for distributed cache
-4. **Future**: Kafka for true distributed processing
+4. **Messaging**: RabbitMQ exchange for multi-consumer event streaming
 
 ### Vertical Scaling
 
